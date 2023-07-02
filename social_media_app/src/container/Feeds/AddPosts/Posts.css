@@ -1,0 +1,17 @@
+.posts svg {
+  margin-right: 5px;
+}
+
+.posts h6 {
+  font-weight: bold;
+  text-transform: capitalize;
+}
+
+.icon-wrapper div {
+  margin-left: 25px;
+  cursor: pointer;
+}
+
+input:focus {
+  outline: none;
+}
