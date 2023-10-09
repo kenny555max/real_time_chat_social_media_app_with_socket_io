@@ -1,7 +1,7 @@
 import { styled } from '@mui/material/styles';
 
 export const ListIcon = styled('li')(({ theme }) => ({
-  'a': {
+  '.link': {
     display: 'flex',
     width: '100%',
     textDecoration: 'none',
@@ -27,7 +27,7 @@ export const ListIcon = styled('li')(({ theme }) => ({
     },
   },
   [theme.breakpoints.down('lg')]: {
-      'a': {
+      '.link': {
           display: 'block',
 
           '.link_text': {

@@ -7,6 +7,7 @@ import { Provider } from 'react-redux';
 import { applyMiddleware, compose, legacy_createStore } from 'redux';
 import thunk from 'redux-thunk';
 import rootReducers from './store';
+import { QueryClient, QueryClientProvider } from 'react-query';
 
 const theme = createTheme({
    direction: 'rtl',
@@ -34,23 +35,17 @@ const store = legacy_createStore(
   )
 );
 
-//const store = legacy_createStore(
-  //rootReducers,
-  //initialState, 
-  //compose(
-    //applyMiddleware(middleware),
-    //window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()
-  //)
-//);
-
+const client = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Provider store={store}>
       <ThemeProvider theme={theme}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <QueryClientProvider client={client}>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </QueryClientProvider>
       </ThemeProvider>
     </Provider>
   </React.StrictMode>

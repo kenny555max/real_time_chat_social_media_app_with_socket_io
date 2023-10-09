@@ -27,6 +27,6 @@ const commentSchema = new mongoose.Schema({
     }
 });
 
-const commentModel = mongoose.model('socialcomment', commentSchema);
+const commentModel = mongoose.model('social_app_comment', commentSchema);
 
 export default commentModel;

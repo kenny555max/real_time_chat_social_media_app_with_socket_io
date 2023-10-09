@@ -80,6 +80,7 @@ export const getAllUsers = async (req, res) => {
 export const updateUser = async (req, res) => {
     try {
         const { coverImage, profileImage } = req.body;
+        
         const result = await User.findByIdAndUpdate({ _id: req.body.id }, { coverImage, profileImage }, { new: true });
         
         const token = jwt.sign({ email: result.email, _id: result._id }, 'secret', { expiresIn: '1h' });

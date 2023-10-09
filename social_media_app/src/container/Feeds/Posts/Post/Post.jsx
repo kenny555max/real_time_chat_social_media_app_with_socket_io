@@ -1,10 +1,10 @@
-import { Grid, Card, CardHeader, CardMedia, CardActions, Button, CardContent, Avatar, IconButton, Typography, Paper } from '@mui/material';
+import { Grid, Card, CardHeader, CardMedia, CardActions, Button, CardContent, Avatar, IconButton, Typography, Paper, CircularProgress } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import Collapse from '@mui/material/Collapse';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
@@ -15,7 +15,8 @@ import AccountCircle from '@mui/icons-material/AccountCircle';
 import { Link } from 'react-router-dom';
 import SendIcon from '@mui/icons-material/Send';
 import { createComment, getAllComments, updatePost } from '../../../../actions';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
+import { useQuery, useMutation } from 'react-query';
 
 const includeUser = (friends, loggedIn_user) => {
     const isUser = friends.filter(user => user.userId === loggedIn_user?._id);
@@ -48,21 +49,38 @@ const Post = ({ post }) => {
         comment: ''
     });
     const dispatch = useDispatch();
-    const [comments, setComments] = useState([]);
-    const commentState = useSelector((state) => state.comments.comments);
-    //const comments = useMemo(() => {
-      //  return commentState.filter(comment => comment.postId === post._id);
-    //}, [commentState, post._id]);
+    //const [comments, setComments] = useState([]);
+    //const commentState = useSelector((state) => state.comments.comments);
+    
+    const { data: user_comments, isLoading, refetch } = useQuery({
+        queryKey: ['fetch_all_comments'],
+        queryFn: async () => {
+            try {
+                const data = await getAllComments();
+
+                //setComments([...data.filter(comment => comment.postId === post._id)]);
+                return data;
+            } catch (error) {
+                console.log(error);
+            }
+        },
+        enabled: !!post._id
+    });
+    const { isLoading: is_creating_comment, mutate: create_new_comment } = useMutation(
+        (new_comment_data) => dispatch(createComment(new_comment_data)),
+        {
+            onSuccess: () => {
+                refetch();
+
+                setCommentData({
+                    comment: ''
+                })
+            }
+        }
+    );
+
     const [likeCount, setLikeCount] = useState(post.like.length);
     
-    useEffect(() => {
-        getAllComments()
-            .then((data) => {
-                setComments([...data.filter(comment => comment.postId === post._id)]);
-            })
-            .catch((error) => console.log(error))
-    },[post._id, commentState]);
-
     const handleExpandClick = () => {
         setExpanded(!expanded);
     };
@@ -70,11 +88,15 @@ const Post = ({ post }) => {
     const makeComment = () => {
         if (commentData.comment === '') return;
 
-        dispatch(createComment({ ...commentData, username: user.username, userImage: user.profileImage, userId: user._id, postId: post._id }));
-
-        setCommentData({
-            comment: ''
-        })
+        create_new_comment(
+            {
+                ...commentData,
+                username: user.username,
+                userImage: user.profileImage,
+                userId: user._id,
+                postId: post._id
+            }
+        );
     }
 
     const likePost = () => {
@@ -123,7 +145,7 @@ const Post = ({ post }) => {
                 <Collapse in={expanded} timeout="auto" unmountOnExit>
                     <CardContent>
                         <Typography variant='h5'>Comments:</Typography>
-                        {comments.map((comment, index) => {
+                        {user_comments !== undefined && [...user_comments.filter(comment => comment.postId === post._id)].map((comment, index) => {
                             return <List key={index} sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}>
                                 <ListItem>
                                     <ListItemAvatar>
@@ -133,6 +155,7 @@ const Post = ({ post }) => {
                                 </ListItem>
                             </List>
                         })}
+                          {is_creating_comment && (<CircularProgress />)}
                         <div className='add_comment' style={{ display: 'flex' }}>
                             <TextField
                                 id="input-with-icon-textfield"
@@ -167,7 +190,7 @@ const Post = ({ post }) => {
                         <Typography variant='body1'>{likeCount} people like it</Typography>
                     </div>
                     <Button onClick={handleExpandClick} aria-label="share">
-                        {comments.length}
+                        {!isLoading && [...user_comments.filter(comment => comment.postId === post._id)].length}
                         {"  "}  
                         comments
                     </Button>

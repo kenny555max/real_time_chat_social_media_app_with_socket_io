@@ -1,3 +1,5 @@
+import { useQuery, useMutation } from 'react-query';
+
 import CollectionsIcon from '@mui/icons-material/Collections';
 import LabelIcon from '@mui/icons-material/Label';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -5,39 +7,69 @@ import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import EmojiPicker from 'emoji-picker-react';
 import { useDispatch, useSelector } from 'react-redux';
 import './AddPosts.scss';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { getAllUsers, createPost } from '../../../actions';
 import { Box, Divider, Paper, Avatar, Typography, Button } from '@mui/material';
 import { Link } from 'react-router-dom';
 
-
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import TagModal from './TagModal';
 
 const AddPosts = () => {
+    const dispatch = useDispatch();
+    const socket = useSelector((state) => state.users.socket);
     const [feeling, setFeeling] = useState(false);
     const [open, setOpen] = useState(false);
-    const handleOpen = () => setOpen(true);
-    const handleClose = () => setOpen(false);
-    const user = JSON.parse(localStorage.getItem('profile'))?.result;
-    const users = useSelector((state) => state.users.users);
-    const allFriends = useMemo(() => {
-        return users.filter(data => data._id !== user);
-    }, [users, user]);
-    //const user = useMemo(() => {
-      //  return users.filter(user => user._id === currentUserId);
-    //}, [users, currentUserId]);
-    const dispatch = useDispatch();
     const [postData, setPostData] = useState({
         selectedFile: '',
         text: '',
         friendsTagged: []
     });
+    const user = JSON.parse(localStorage.getItem('profile'))?.result;
+    const { data: users, isLoading, isError, error: get_all_users_error } = useQuery({
+        queryKey: ['fetch_all_users'],
+        queryFn: async () => {
+            try {
+                const users = await getAllUsers();
 
+                //console.log(users);
+                return users;
+            } catch (error) {
+                console.log(error);
+                return error;
+            }
+        },
+        staleTime: 1000000
+    });
+    const { mutate: create_new_post, isLoading: is_creating_new_post, isError: error_creating_post, error } = useMutation(
+        (new_post_data) => dispatch(createPost(new_post_data)),
+        {
+            onSuccess: () => {
+                socket.emit('posted', { username: user.username, email: user.email });
+
+                setPostData({
+                    selectedFile: '',
+                    text: '',
+                    friendsTagged: []
+                });
+            }   
+        }
+    );
     useEffect(() => {
-        dispatch(getAllUsers());
+        if (!socket) return;
+
+        socket.on('notification', (message) => {
+            console.log(message);
+        })
+    },[user, socket]);
+    const allFriends = useMemo(() => {
+        if (isLoading) return <div>Loading user............</div>
+
+        if (isError) return <div>Error: {get_all_users_error}</div>
+
+        return users.filter(data => data._id !== user);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    },[]);
+    }, [users, user, isLoading, isError]);
 
     // Create a reference to the hidden file input element
     const hiddenFileInput = useRef(null);
@@ -61,6 +93,9 @@ const AddPosts = () => {
         }
     }
 
+    const handleOpen = () => setOpen(true);
+    const handleClose = () => setOpen(false);
+
     const tagFriends = (user) => {
         setPostData({ ...postData, friendsTagged: [ ...postData.friendsTagged, { userId: user._id, username: user.username } ] });
 
@@ -76,18 +111,36 @@ const AddPosts = () => {
     const createPosts = () => {
         if (postData.selectedFile === '') return;
 
-        dispatch(createPost({ ...postData, username: user.username, userId: user._id, userImage: user.profileImage }));
-
-        setPostData({
-            selectedFile: '',
-            text: '',
-            friendsTagged: []
+        create_new_post({
+            ...postData,
+            username: user.username,
+            userId: user._id,
+            userImage: user.profileImage
         });
     }
+
+    if (error_creating_post) return <div>Error: {error}</div>
 
     return (
         <>
             <Box sx={{ flexGrow: 1, marginBottom: '40px' }} className='add_posts'>
+                {is_creating_new_post && (
+                    <div style={{
+                        position: 'fixed',
+                        height: '100%',
+                        width: '100%',
+                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                        top: '0',
+                        right: '0',
+                        left: '0',
+                        bottom: '0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#fff',
+                        fontSize: '2em'
+                    }}>creating new post</div>
+                )}
                 <Paper sx={{ padding: '0 20px' }} elevation={4}>
                     <Box sx={{ padding: '20px 0', display: 'flex', alignItems: 'center' }}>
                         <Avatar

@@ -5,8 +5,21 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
 import { Box, Typography, Avatar } from '@mui/material';
+import { useMemo } from 'react';
+import { useSelector } from 'react-redux';
 
 const Notification = () => {
+    const users = useSelector((state) => state.users.users);
+    const id = JSON.parse(localStorage.getItem('profile'))?.result?._id
+    //profile_user
+    const user = useMemo(() => {
+        return users.filter((user) => user._id === id);
+    }, [users, id]);
+    //profile_user-friends
+    const allFriends = useMemo(() => {
+        return users.filter(friend => user[0]?.friends.indexOf(friend._id) !== -1 && friend);
+    }, [users, user]);
+
     return (
         <Box>
             <div style={{ display: 'flex' }}>
@@ -19,13 +32,13 @@ const Notification = () => {
             <div style={{ marginTop: '40px' }}>
                 <h3>Online Friends</h3>
                 <List sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((list) => {
-                        return <ListItem key={list} sx={{ display: 'flex', alignItems: 'center', fontWeight: 'bolder' }}>
+                    {allFriends.map((user) => {
+                        return <ListItem key={user._id} sx={{ display: 'flex', alignItems: 'center', fontWeight: 'bolder' }}>
                                 <ListItemAvatar>
-                                <Avatar alt="Remy Sharp" src={image} />
+                                <Avatar alt="Remy Sharp" src={user.profileImage} />
                                 </ListItemAvatar>
                                 <ListItemText
-                                primary="Brunch this weekend?"
+                                primary={user.username}
                                 />
                             </ListItem>
                     })}

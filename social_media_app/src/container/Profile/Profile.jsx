@@ -10,7 +10,8 @@ import Header from "../../components/Header/Header";
 import ClipperDrawer from "../../components/ClipperDrawer/ClipperDrawer";
 import listArray from "../list";
 import { Box, Typography, Grid, Button, CircularProgress } from "@mui/material";
-
+import SnackBar from "./SnackBar";
+import { useQuery, useMutation } from "react-query";
 
 export const SideBar = styled('div')(({ theme }) => ({
     position: 'fixed',
@@ -52,29 +53,72 @@ const bannerImageStyle = (coverImage) => {
 }
 
 const Profile = () => {
+    const [snackbar, setSnackBar] = useState({
+        open: false,
+        vertical: 'bottom',
+        horizontal: 'right',
+    });
+
     const hiddenCoverInput = useRef(null);
     const hiddenProfileInput = useRef(null);
     const { id } = useParams();
     const loggedIn_user = JSON.parse(localStorage.getItem('profile'))?.result;
-    const users = useSelector((state) => state.users.users);
+    //const users = useSelector((state) => state.users.users);
+    const { data: users, refetch, isLoading } = useQuery({
+        queryKey: ['fetch_all_users'],
+        queryFn: async () => {
+            try {
+                const users = await getAllUsers();
+
+                console.log(users);
+
+                return users;
+            } catch (error) {
+                console.log(error);
+            }
+        },
+        staleTime: 1000000
+    });
+    const { mutate: update_user_data } = useMutation(
+        (new_updated_data) => dispatch(updateUser(new_updated_data)),
+        {
+            onSuccess: () => {
+                refetch();
+            }
+        }
+    );
+    const { mutate: update_user_friend, isLoading: is_adding_friend } = useMutation(
+        (new_updated_data) => dispatch(updateUserFriend(new_updated_data)),
+        {
+            onSuccess: () => {
+                refetch();
+            }
+        }
+    );
     //profile_user
     const user = useMemo(() => {
-        return users.filter((user) => user._id === id);
-    }, [users, id]);
+        return !isLoading && users.filter((user) => user._id === id);
+    }, [isLoading, users, id]);
     //profile_user-friends
     const allFriends = useMemo(() => {
-        return users.filter(friend => user[0]?.friends.indexOf(friend._id) !== -1 && friend);
-    }, [users, user]);
+        return !isLoading && users.filter(friend => user[0]?.friends.indexOf(friend._id) !== -1 && friend);
+    }, [users, user, isLoading]);
     //loggedIn_user_friends
     const loggedInUser = useMemo(() => {
-        return users.filter(user => user._id === loggedIn_user?._id);
-    }, [users, loggedIn_user]);
+        return !isLoading && users.filter(user => user._id === loggedIn_user?._id);
+    }, [users, loggedIn_user, isLoading]);
     //profile_user_already_friend
     const profile_user_already_friend = useMemo(() => {
-        return loggedInUser[0]?.friends.indexOf(user[0]._id);
-    }, [loggedInUser, user]);
-    const coverImage = user[0]?.coverImage;
-    const profileImage = user[0]?.profileImage;
+        if (isLoading) return;
+
+        return loggedInUser[0]?.friends.indexOf(user[0]?._id);
+    }, [loggedInUser, user, isLoading]);
+    const coverImage = useMemo(() => {
+        return user[0]?.coverImage;
+    }, [user]);
+    const profileImage = useMemo(() => {
+        return user[0]?.profileImage;
+    },[user]);
     const [coverImageState, setCoverImageState] = useState(coverImage);
     const [profileImageState, setProfileImageState] = useState(profileImage);
     const dispatch = useDispatch();
@@ -84,11 +128,12 @@ const Profile = () => {
         setProfileImageState(profileImage);
     }, [coverImage, profileImage]);
 
+    /**
     useEffect(() => {
         dispatch(getAllUsers());
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-    
+    */
     useEffect(() => {
         setCoverImageState(coverImage || '');
         setProfileImageState(profileImage || '');
@@ -97,11 +142,13 @@ const Profile = () => {
 
     useEffect(() => {
         if (coverImageState === '' && profileImageState === '') return;
+
+        if (loggedIn_user._id !== id) return;
         
-        dispatch(updateUser({ coverImage: coverImageState, profileImage: profileImageState, id: user[0]?._id }));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        update_user_data({ coverImage: coverImageState, profileImage: profileImageState, id: user[0]?._id });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     },[coverImageState, profileImageState]);
- 
+
     const handleProfileClick = () => {
         hiddenProfileInput.current.click();
     }
@@ -124,13 +171,15 @@ const Profile = () => {
             // This does not return the text. It just starts reading.
             // The onload handler is triggered when it is done and the result is available.
             reader.readAsDataURL(files[0]);
+
+            setSnackBar({ ...snackbar, open: true });
         }
     }
 
     if (user.length === 0) return <CircularProgress size='large' />
 
     const addFriend = () => {
-        dispatch(updateUserFriend({ loggedInUserId: loggedIn_user?._id, friendId: user[0]._id}));
+        update_user_friend({ loggedInUserId: loggedIn_user?._id, friendId: user[0]._id});
     }
 
     return (
@@ -141,9 +190,9 @@ const Profile = () => {
             </SideBar>
             <Main>
                 <Box component='div' onClick={handleCoverClick} className='banner-image' sx={{ ...bannerImageStyle(coverImageState) }}>
-                    {coverImageState === '' && (
+                    {!isLoading && loggedIn_user?._id === user[0]._id && (coverImageState === '' && (
                         <div className='cover_image_overlay'>Add a cover picture</div>
-                    )}
+                    ))}
                     <input
                         type="file"
                         disabled={loggedIn_user?._id === id ? false : true}
@@ -155,9 +204,9 @@ const Profile = () => {
                 <Box component='div' height='150px' position='relative'>
                     <div className="profile" style={{ display: 'flex', alignItems: 'center', flexDirection: 'column', position: 'absolute', left: 'calc(50% - 75px)', top: '-100px' }}>
                         <div className="profile-image" onClick={handleProfileClick} style={{ height: '150px', width: '150px', borderRadius: '100%', overflow: 'hidden', border: '5px solid floralwhite' }}>
-                            {profileImageState === '' && (
+                            {!isLoading && loggedIn_user?._id === user[0]._id && (profileImageState === '' && (
                                 <div className="profile_image_overlay">Add a profile picture</div>
-                            )}
+                            ))}
                             <input
                                 name='profile_image'
                                 type="file"
@@ -178,11 +227,16 @@ const Profile = () => {
                         <Posts />
                     </Grid>
                     <Grid item lg={4} md={12}>
-                        {loggedIn_user?._id !== user[0]?._id && ( profile_user_already_friend === -1 && (
+                        {loggedIn_user?._id !== user[0]?._id && ( profile_user_already_friend === -1 ? (
                             <div>
-                                <Button variant='contained' onClick={addFriend} color='primary'>Unfollow</Button>
+                                <Button variant='contained' onClick={addFriend} color='primary'>{is_adding_friend ? <CircularProgress /> : 'follow'}</Button>
                             </div>
-                        ))}
+                        ) : 
+                            <div>
+                                <Button variant='contained' onClick={addFriend} color='primary'>{is_adding_friend ? <CircularProgress /> : 'unfollow'}</Button>
+                                <Button variant='contained' component={Link} to={`/lookalike/chat/${user[0]?._id}`} color='success'>Message</Button>
+                            </div>
+                        )}
                         <div style={{ padding: '20px 0' }}>
                             <Typography variant='h6'>User Infromation</Typography>
                             <ul>
@@ -212,6 +266,7 @@ const Profile = () => {
                         </Grid>
                     </Grid>
                 </Grid>
+                <SnackBar snackbar={snackbar} setSnackBar={setSnackBar} />
             </Main>
         </>
     )

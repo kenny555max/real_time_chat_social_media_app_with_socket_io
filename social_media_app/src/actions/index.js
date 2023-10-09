@@ -18,21 +18,27 @@ function storeData(data) {
 
 export const insertData = (formData, navigate) => {
     return async (dispatch) => {
+        dispatch({ type: 'isLoading', payload: true });
         const { data } = await api.createUser(formData);
 
         navigate('/lookalike/feeds');
         
         dispatch({ type: SIGNUP, payload: data });
+        dispatch({ type: 'isLoading', payload: false });
     }
 }
 
 export const login = (formData, navigate) => {
     return async (dispatch) => {
-        const { data } = await api.login(formData);
-        
-        navigate('/lookalike/feeds');
+        try {
+            const { data } = await api.login(formData);
 
-        dispatch({ type: SIGNIN, payload: data });
+            dispatch({ type: SIGNIN, payload: data });
+
+            window.location = '/lookalike/feeds';
+        } catch (error) {
+            console.log(error);        
+        }
     }
 }
 
@@ -61,13 +67,14 @@ export const updateUserFriend = (updateData) => async (dispatch) => {
     }
 }
 
-export const getAllUsers = () => async (dispatch) => {
+export const getAllUsers = async () => {
     try {
         const { data } = await api.getAllUsers();
-        
-        dispatch({ type: 'ALL_USERS', payload: data });
+
+        return data;
     } catch (error) {
         console.log(error);
+        return error;
     }
 }
 
@@ -92,11 +99,13 @@ export const createPost = (postData) => async (dispatch) => {
     }
 }
 
-export const getAllPosts = () => async dispatch => {
+export const getAllPosts = async () => {
     try {
+        //dispatch({ type: 'isLoading_posts', payload: true });
         const { data } = await api.getAllPosts();
 
-        dispatch({ type: 'ALL_POSTS', payload: data });
+        return data;
+        //dispatch({ type: 'isLoading_posts', payload: false });
     } catch (error) {
         console.log(error);
     }
@@ -125,8 +134,30 @@ export const createComment = (commentData) => async dispatch => {
 export const getAllComments = async () => {
     try {
         const { data } = await api.getAllComments();
+        
         return data;
-        //dispatch({ type: 'ALL_COMMENTS', payload: data });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+export const createChat = (chatData) => async dispatch => {
+    try {
+        const { data } = await api.chat(chatData);
+        console.log(data);
+        dispatch({ type: 'CHAT', payload: data });
+    } catch (error) {
+        console.log(error);        
+    }
+}
+
+export const getAllChats = async () => {
+    try {
+        const { data } = await api.getAllChats();
+
+        //dispatch({ type: 'CHATS', payload: data })
+
+        return data;
     } catch (error) {
         console.log(error);
     }

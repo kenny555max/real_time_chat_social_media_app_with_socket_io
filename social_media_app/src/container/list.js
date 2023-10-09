@@ -11,11 +11,13 @@ import SchoolIcon from '@mui/icons-material/School';
 const listArray = [
     {
         name: 'feed',
-        Icon: RssFeedIcon
+        Icon: RssFeedIcon,
+        link: '/lookalike/feeds'
     },
     {
         name: 'chat',
-        Icon: ChatIcon
+        Icon: ChatIcon,
+        link: '/lookalike/chat'
     },
     {
         name: 'videos',

@@ -35,6 +35,6 @@ const postSchema = mongoose.Schema({
     }
 });
 
-const postModel = mongoose.model('socialposts', postSchema);
+const postModel = mongoose.model('social_app_posts', postSchema);
 
 export default postModel;

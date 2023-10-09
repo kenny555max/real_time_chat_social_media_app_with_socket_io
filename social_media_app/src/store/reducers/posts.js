@@ -2,12 +2,15 @@
 
 const initialState = {
     posts: [],
-    post: {}
+    post: {},
+    isLoading: false
 }
 
 
 function posts(state = initialState, action) {
     switch (action.type) {
+        case 'isLoading_posts':
+            return { ...state, isLoading: action.payload }
         case 'CREATE_POST':
             return { ...state, posts: [ action.payload, ...state.posts] }
         case 'ALL_POSTS':

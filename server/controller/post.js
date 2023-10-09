@@ -2,11 +2,11 @@ import Post from "../model/post.js";
 
 export const createPost = async (req, res) => {
     try {
-        if (req.body.userId !== req.userId) res.status(400).json({ msg: 'This user is not authorized!' });
+        if (!req.userId) res.status(400).json({ msg: 'This user is not authorized!' });
 
-        const posts = await Post.create(req.body);
+        const post = await Post.create(req.body);
 
-        res.status(200).json(posts);
+        res.status(200).json(post);
     } catch (error) {
         console.log(error);
     }
@@ -24,7 +24,7 @@ export const getAllPosts = async (req, res) => {
 
 export const updatePost = async (req, res) => {
     try {
-        if (req.userId !== req.body.userId) res.status(400).json({ msg: 'You are unAuthorized!' });
+        if (!req.userId) res.status(400).json({ msg: 'You are unAuthorized!' });
 
         const post = await Post.findOne({ _id: req.body.postid });
 
